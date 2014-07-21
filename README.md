@@ -3,7 +3,11 @@
 This library is a [RxJava] client of [Mqtt].
 
 ## Todo
-...
+- [ ] connect, subscribe, publish
+- [ ] data persistence
+- [ ] message decoder
+- [ ] ping support
+- [ ] ssl support
 
 ## LICENSE
 
