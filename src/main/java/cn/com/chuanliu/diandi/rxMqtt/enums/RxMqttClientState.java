@@ -8,7 +8,9 @@ public enum RxMqttClientState {
     Connecting(1),
     ConnectingFailed(2),
     Connected(3),
-    ConnectionLost(4);
+    ConnectionLost(4),
+    TryDisconnect(5),
+    Disconnected(6);
 
     private int code;
 

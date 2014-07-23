@@ -15,6 +15,8 @@ public interface IRxMqttClient {
 
     public Observable<IMqttToken> connect();
 
+    public Observable<IMqttToken> disConnect();
+
     public Observable<IMqttToken> subscribeTopic(String topic, int qos);
 
     public Observable<RxMqttMessage> subscribing(String regularExpression);

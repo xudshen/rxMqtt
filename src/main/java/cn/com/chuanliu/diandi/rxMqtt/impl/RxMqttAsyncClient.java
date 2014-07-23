@@ -1,14 +1,11 @@
 package cn.com.chuanliu.diandi.rxMqtt.impl;
 
-import android.util.Log;
-
 import org.eclipse.paho.client.mqttv3.IMqttActionListener;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.IMqttToken;
 import org.eclipse.paho.client.mqttv3.MqttAsyncClient;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttClientPersistence;
-import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
@@ -19,6 +16,7 @@ import cn.com.chuanliu.diandi.rxMqtt.enums.RxMqttExceptionType;
 import cn.com.chuanliu.diandi.rxMqtt.exceptions.RxMqttException;
 import cn.com.chuanliu.diandi.rxMqtt.exceptions.RxMqttTokenException;
 import rx.Observable;
+import rx.Observer;
 import rx.Subscriber;
 import rx.functions.Func1;
 
@@ -35,37 +33,92 @@ public class RxMqttAsyncClient extends RxMqttClient {
         try {
             client = new MqttAsyncClient(brokerUrl, clientId, persistence);
         } catch (MqttException ex) {
-            Log.e("at new", ex.getMessage());
             throw new RxMqttException(RxMqttExceptionType.CLIENT_INIT_ERROR);
+        }
+    }
+
+    private void connect(final Subscriber<? super IMqttToken> subscriber) {
+        try {
+            updateState(RxMqttClientState.Connecting);
+            client.connect(this.getConOpt(), "Context", new IMqttActionListener() {
+                @Override
+                public void onSuccess(IMqttToken asyncActionToken) {
+                    subscriber.onNext(asyncActionToken);
+                    subscriber.onCompleted();
+                    updateState(RxMqttClientState.Connected);
+                }
+
+                @Override
+                public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
+                    subscriber.onError(new RxMqttTokenException(exception, asyncActionToken));
+                    updateState(RxMqttClientState.ConnectingFailed);
+                }
+            });
+        } catch (MqttException ex) {
+            subscriber.onError(ex);
+            updateState(RxMqttClientState.ConnectingFailed);
         }
     }
 
     @Override
     public Observable<IMqttToken> connect() {
-        updateState(RxMqttClientState.Connecting);
-        final MqttConnectOptions conOpt = this.getConOpt();
         return Observable.create(new Observable.OnSubscribe<IMqttToken>() {
             @Override
             public void call(final Subscriber<? super IMqttToken> subscriber) {
-                if (null == client) subscriber.onError(new
-                        RxMqttException(RxMqttExceptionType.CLIENT_NULL_ERROR));
+                if (null == client) {
+                    subscriber.onError(new
+                            RxMqttException(RxMqttExceptionType.CLIENT_NULL_ERROR));
+                    updateState(RxMqttClientState.ConnectingFailed);
+                }
 
-                try {
-                    client.connect(conOpt, "Context", new IMqttActionListener() {
-                        @Override
-                        public void onSuccess(IMqttToken asyncActionToken) {
-                            subscriber.onNext(asyncActionToken);
-                            updateState(RxMqttClientState.Connected);
-                        }
+                disConnect().subscribe(new Observer<IMqttToken>() {
+                    @Override
+                    public void onCompleted() {
+                        connect(subscriber);
+                    }
 
-                        @Override
-                        public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
-                            subscriber.onError(new RxMqttTokenException(exception, asyncActionToken));
-                            updateState(RxMqttClientState.ConnectingFailed);
-                        }
-                    });
-                } catch (MqttException ex) {
-                    subscriber.onError(ex);
+                    @Override
+                    public void onError(Throwable e) {
+                        connect(subscriber);
+                    }
+
+                    @Override
+                    public void onNext(IMqttToken iMqttToken) {
+
+                    }
+                });
+            }
+        });
+    }
+
+    @Override
+    public Observable<IMqttToken> disConnect() {
+        return Observable.create(new Observable.OnSubscribe<IMqttToken>() {
+            @Override
+            public void call(final Subscriber<? super IMqttToken> subscriber) {
+                if (client != null && client.isConnected()) {
+                    try {
+                        updateState(RxMqttClientState.TryDisconnect);
+                        client.disconnect("Context", new IMqttActionListener() {
+                            @Override
+                            public void onSuccess(IMqttToken asyncActionToken) {
+                                subscriber.onNext(asyncActionToken);
+                                subscriber.onCompleted();
+                                updateState(RxMqttClientState.Disconnected);
+                            }
+
+                            @Override
+                            public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
+                                subscriber.onError(new RxMqttTokenException(exception, asyncActionToken));
+                                updateState(RxMqttClientState.Disconnected);
+                            }
+                        });
+                    } catch (MqttException e) {
+                        subscriber.onError(e);
+                        updateState(RxMqttClientState.Disconnected);
+                    }
+                } else {
+                    subscriber.onCompleted();
                 }
             }
         });
@@ -88,6 +141,7 @@ public class RxMqttAsyncClient extends RxMqttClient {
                         @Override
                         public void onSuccess(IMqttToken asyncActionToken) {
                             subscriber.onNext(asyncActionToken);
+                            subscriber.onCompleted();
                         }
 
                         @Override
@@ -97,8 +151,6 @@ public class RxMqttAsyncClient extends RxMqttClient {
                     });
                 } catch (MqttException ex) {
                     subscriber.onError(ex);
-                } finally {
-                    subscriber.onCompleted();
                 }
             }
         });
@@ -117,6 +169,7 @@ public class RxMqttAsyncClient extends RxMqttClient {
                         @Override
                         public void onSuccess(IMqttToken asyncActionToken) {
                             subscriber.onNext(asyncActionToken);
+                            subscriber.onCompleted();
                         }
 
                         @Override
@@ -139,7 +192,6 @@ public class RxMqttAsyncClient extends RxMqttClient {
     @Override
     public Observable<RxMqttMessage> subscribing(final Pattern pattern) {
         return getMessageObservable().filter(new Func1<RxMqttMessage, Boolean>() {
-            //        return subject.filter(new Func1<RxMqttMessage, Boolean>() {
             @Override
             public Boolean call(RxMqttMessage rxMqttMessage) {
                 return pattern.matcher(rxMqttMessage.getTopic()).matches();
@@ -163,10 +215,6 @@ public class RxMqttAsyncClient extends RxMqttClient {
 
                         @Override
                         public void messageArrived(String topic, MqttMessage message) {
-                            Log.d(Thread.currentThread().getName(),
-                                    "[" + topic + "," + new String(message.getPayload())
-                                            + "," + message.getQos() + "]"
-                            );
                             subscriber.onNext(new RxMqttMessage(topic, message));
                         }
 
