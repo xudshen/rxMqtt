@@ -43,20 +43,20 @@ public class RxMqttAsyncClient extends RxMqttClient {
             client.connect(this.getConOpt(), "Context", new IMqttActionListener() {
                 @Override
                 public void onSuccess(IMqttToken asyncActionToken) {
+                    updateState(RxMqttClientState.Connected);
                     subscriber.onNext(asyncActionToken);
                     subscriber.onCompleted();
-                    updateState(RxMqttClientState.Connected);
                 }
 
                 @Override
                 public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
-                    subscriber.onError(new RxMqttTokenException(exception, asyncActionToken));
                     updateState(RxMqttClientState.ConnectingFailed);
+                    subscriber.onError(new RxMqttTokenException(exception, asyncActionToken));
                 }
             });
         } catch (MqttException ex) {
-            subscriber.onError(ex);
             updateState(RxMqttClientState.ConnectingFailed);
+            subscriber.onError(ex);
         }
     }
 
@@ -66,12 +66,12 @@ public class RxMqttAsyncClient extends RxMqttClient {
             @Override
             public void call(final Subscriber<? super IMqttToken> subscriber) {
                 if (null == client) {
+                    updateState(RxMqttClientState.ConnectingFailed);
                     subscriber.onError(new
                             RxMqttException(RxMqttExceptionType.CLIENT_NULL_ERROR));
-                    updateState(RxMqttClientState.ConnectingFailed);
                 }
 
-                disConnect().subscribe(new Observer<IMqttToken>() {
+                disconnect().subscribe(new Observer<IMqttToken>() {
                     @Override
                     public void onCompleted() {
                         connect(subscriber);
@@ -92,7 +92,7 @@ public class RxMqttAsyncClient extends RxMqttClient {
     }
 
     @Override
-    public Observable<IMqttToken> disConnect() {
+    public Observable<IMqttToken> disconnect() {
         return Observable.create(new Observable.OnSubscribe<IMqttToken>() {
             @Override
             public void call(final Subscriber<? super IMqttToken> subscriber) {
@@ -102,20 +102,20 @@ public class RxMqttAsyncClient extends RxMqttClient {
                         client.disconnect("Context", new IMqttActionListener() {
                             @Override
                             public void onSuccess(IMqttToken asyncActionToken) {
+                                updateState(RxMqttClientState.Disconnected);
                                 subscriber.onNext(asyncActionToken);
                                 subscriber.onCompleted();
-                                updateState(RxMqttClientState.Disconnected);
                             }
 
                             @Override
                             public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
-                                subscriber.onError(new RxMqttTokenException(exception, asyncActionToken));
                                 updateState(RxMqttClientState.Disconnected);
+                                subscriber.onError(new RxMqttTokenException(exception, asyncActionToken));
                             }
                         });
                     } catch (MqttException e) {
-                        subscriber.onError(e);
                         updateState(RxMqttClientState.Disconnected);
+                        subscriber.onError(e);
                     }
                 } else {
                     subscriber.onCompleted();
