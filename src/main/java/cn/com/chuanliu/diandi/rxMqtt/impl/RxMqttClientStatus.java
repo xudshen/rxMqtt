@@ -8,19 +8,19 @@ import cn.com.chuanliu.diandi.rxMqtt.enums.RxMqttClientState;
  * Created by xudshen@hotmail.com on 14-7-23.
  */
 public class RxMqttClientStatus implements Cloneable {
-    private Timestamp startTime;
+    private Timestamp logTime;
     private RxMqttClientState state;
 
     public RxMqttClientStatus() {
         this.state = RxMqttClientState.Init;
     }
 
-    public Timestamp getStartTime() {
-        return startTime;
+    public Timestamp getLogTime() {
+        return logTime;
     }
 
-    public void setStartTime(Timestamp startTime) {
-        this.startTime = startTime;
+    public void setLogTime(Timestamp logTime) {
+        this.logTime = logTime;
     }
 
     public RxMqttClientState getState() {
@@ -33,7 +33,7 @@ public class RxMqttClientStatus implements Cloneable {
 
     @Override
     public String toString() {
-        return String.format("state:%s, start time:%s", getState(), getStartTime());
+        return String.format("time:%sm state:%s", getLogTime(), getState());
     }
 
     @Override

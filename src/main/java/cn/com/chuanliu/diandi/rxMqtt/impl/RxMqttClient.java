@@ -27,7 +27,7 @@ public abstract class RxMqttClient implements IRxMqttClient {
         this.configOtherOptions(true, 60, 60);
         //init status
         status = new RxMqttClientStatus();
-        status.setStartTime(new Timestamp(System.currentTimeMillis()));
+        status.setLogTime(new Timestamp(System.currentTimeMillis()));
         status.setState(RxMqttClientState.Init);
         statusSubject = PublishSubject.create();
     }
@@ -67,6 +67,7 @@ public abstract class RxMqttClient implements IRxMqttClient {
     public void updateState(RxMqttClientState state) {
         if (this.status.getState() != state) {
             this.status.setState(state);
+            this.status.setLogTime(new Timestamp(System.currentTimeMillis()));
             statusSubject.onNext((RxMqttClientStatus) status.clone());
         }
     }
