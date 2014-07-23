@@ -14,6 +14,7 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 import java.util.regex.Pattern;
 
+import cn.com.chuanliu.diandi.rxMqtt.enums.RxMqttClientState;
 import cn.com.chuanliu.diandi.rxMqtt.enums.RxMqttExceptionType;
 import cn.com.chuanliu.diandi.rxMqtt.exceptions.RxMqttException;
 import cn.com.chuanliu.diandi.rxMqtt.exceptions.RxMqttTokenException;
@@ -41,6 +42,7 @@ public class RxMqttAsyncClient extends RxMqttClient {
 
     @Override
     public Observable<IMqttToken> connect() {
+        updateState(RxMqttClientState.Connecting);
         final MqttConnectOptions conOpt = this.getConOpt();
         return Observable.create(new Observable.OnSubscribe<IMqttToken>() {
             @Override
@@ -53,11 +55,13 @@ public class RxMqttAsyncClient extends RxMqttClient {
                         @Override
                         public void onSuccess(IMqttToken asyncActionToken) {
                             subscriber.onNext(asyncActionToken);
+                            updateState(RxMqttClientState.Connected);
                         }
 
                         @Override
                         public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
                             subscriber.onError(new RxMqttTokenException(exception, asyncActionToken));
+                            updateState(RxMqttClientState.ConnectingFailed);
                         }
                     });
                 } catch (MqttException ex) {
@@ -154,7 +158,7 @@ public class RxMqttAsyncClient extends RxMqttClient {
                     client.setCallback(new MqttCallback() {
                         @Override
                         public void connectionLost(Throwable cause) {
-
+                            updateState(RxMqttClientState.ConnectionLost);
                         }
 
                         @Override

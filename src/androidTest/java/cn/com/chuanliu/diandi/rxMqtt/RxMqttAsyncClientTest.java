@@ -10,6 +10,7 @@ import cn.com.chuanliu.diandi.rxMqtt.enums.ClientType;
 import cn.com.chuanliu.diandi.rxMqtt.exceptions.RxMqttException;
 import cn.com.chuanliu.diandi.rxMqtt.impl.RxMqttAsyncClient;
 import cn.com.chuanliu.diandi.rxMqtt.impl.RxMqttClientFactory;
+import cn.com.chuanliu.diandi.rxMqtt.impl.RxMqttClientStatus;
 import cn.com.chuanliu.diandi.rxMqtt.impl.RxMqttMessage;
 import rx.Observer;
 import rx.functions.Action1;
@@ -96,6 +97,12 @@ public class RxMqttAsyncClientTest extends InstrumentationTestCase {
                         @Override
                         public void call(RxMqttMessage rxMqttMessage) {
                             Log.d(Thread.currentThread().getName(), rxMqttMessage.toString());
+                        }
+                    });
+                    client.statusReport().subscribe(new Action1<RxMqttClientStatus>() {
+                        @Override
+                        public void call(RxMqttClientStatus rxMqttClientStatus) {
+                            Log.d(Thread.currentThread().getName(), rxMqttClientStatus.toString());
                         }
                     });
 

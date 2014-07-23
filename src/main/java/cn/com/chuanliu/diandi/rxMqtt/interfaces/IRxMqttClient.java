@@ -4,6 +4,7 @@ import org.eclipse.paho.client.mqttv3.IMqttToken;
 
 import java.util.regex.Pattern;
 
+import cn.com.chuanliu.diandi.rxMqtt.impl.RxMqttClientStatus;
 import cn.com.chuanliu.diandi.rxMqtt.impl.RxMqttMessage;
 import rx.Observable;
 
@@ -21,4 +22,6 @@ public interface IRxMqttClient {
     public Observable<RxMqttMessage> subscribing(Pattern pattern);
 
     public Observable<IMqttToken> publish(String topic, String msg);
+
+    public Observable<RxMqttClientStatus> statusReport();
 }
