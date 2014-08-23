@@ -9,6 +9,7 @@ import org.eclipse.paho.client.mqttv3.MqttClientPersistence;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
+import java.util.Hashtable;
 import java.util.regex.Pattern;
 
 import cn.com.chuanliu.diandi.rxMqtt.enums.RxMqttClientState;
@@ -18,14 +19,16 @@ import cn.com.chuanliu.diandi.rxMqtt.exceptions.RxMqttTokenException;
 import rx.Observable;
 import rx.Observer;
 import rx.Subscriber;
-import rx.functions.Func1;
+import rx.subjects.PublishSubject;
 
 /**
  * Created by xudshen@hotmail.com on 14-7-21.
  */
 public class RxMqttAsyncClient extends RxMqttClient {
     private MqttAsyncClient client;
-    private Observable<RxMqttMessage> messageObservable;
+    private Hashtable<String, Pattern> patternHashtable;
+    private Hashtable<String, PublishSubject<RxMqttMessage>> subjectHashtable;
+
 
     public RxMqttAsyncClient(String brokerUrl, String clientId, MqttClientPersistence persistence)
             throws RxMqttException {
@@ -190,42 +193,39 @@ public class RxMqttAsyncClient extends RxMqttClient {
     }
 
     @Override
-    public Observable<RxMqttMessage> subscribing(final Pattern pattern) {
-        return getMessageObservable().filter(new Func1<RxMqttMessage, Boolean>() {
-            @Override
-            public Boolean call(RxMqttMessage rxMqttMessage) {
-                return pattern.matcher(rxMqttMessage.getTopic()).matches();
-            }
-        });
-    }
+    public synchronized Observable<RxMqttMessage> subscribing(final Pattern pattern) {
+        if (null == patternHashtable && null == subjectHashtable) {
+            patternHashtable = new Hashtable<>();
+            subjectHashtable = new Hashtable<>();
 
-    private Observable<RxMqttMessage> getMessageObservable() {
-        if (null == messageObservable) {
-            messageObservable = Observable.create(new Observable.OnSubscribe<RxMqttMessage>() {
+            client.setCallback(new MqttCallback() {
                 @Override
-                public void call(final Subscriber<? super RxMqttMessage> subscriber) {
-                    if (null == client) subscriber.onError(new
-                            RxMqttException(RxMqttExceptionType.CLIENT_NULL_ERROR));
+                public void connectionLost(Throwable cause) {
+                    updateState(RxMqttClientState.ConnectionLost);
+                }
 
-                    client.setCallback(new MqttCallback() {
-                        @Override
-                        public void connectionLost(Throwable cause) {
-                            updateState(RxMqttClientState.ConnectionLost);
+                @Override
+                public void messageArrived(String topic, MqttMessage message) {
+                    for (String key : patternHashtable.keySet()) {
+                        if (patternHashtable.get(key).matcher(topic).matches()) {
+                            subjectHashtable.get(key).onNext(new RxMqttMessage(topic, message));
                         }
+                    }
+                }
 
-                        @Override
-                        public void messageArrived(String topic, MqttMessage message) {
-                            subscriber.onNext(new RxMqttMessage(topic, message));
-                        }
+                @Override
+                public void deliveryComplete(IMqttDeliveryToken token) {
 
-                        @Override
-                        public void deliveryComplete(IMqttDeliveryToken token) {
-
-                        }
-                    });
                 }
             });
         }
-        return messageObservable;
+        if (patternHashtable.containsKey(pattern.pattern())) {
+            return subjectHashtable.get(pattern.pattern());
+        } else {
+            patternHashtable.put(pattern.pattern(), pattern);
+            PublishSubject<RxMqttMessage> subject = PublishSubject.create();
+            subjectHashtable.put(pattern.pattern(), subject);
+            return subjectHashtable.get(pattern.pattern());
+        }
     }
 }
