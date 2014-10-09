@@ -206,9 +206,11 @@ public class RxMqttAsyncClient extends RxMqttClient {
 
                 @Override
                 public void messageArrived(String topic, MqttMessage message) {
-                    for (String key : patternHashtable.keySet()) {
-                        if (patternHashtable.get(key).matcher(topic).matches()) {
-                            subjectHashtable.get(key).onNext(new RxMqttMessage(topic, message));
+                    if(message.getPayload().length != 0) {
+                        for (String key : patternHashtable.keySet()) {
+                            if (patternHashtable.get(key).matcher(topic).matches()) {
+                                subjectHashtable.get(key).onNext(new RxMqttMessage(topic, message));
+                            }
                         }
                     }
                 }
