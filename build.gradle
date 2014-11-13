@@ -31,6 +31,7 @@ dependencies {
     compile "org.eclipse.paho:mqtt-client:${PAHO_MQTT_VERSION}"
 
     compile "com.netflix.rxjava:rxjava-android:${RXJAVA_VERSION}"
-    compile "org.bouncycastle:bcprov-jdk15on:${BOUNCYCASTLE_VERSION}"
-    compile "org.bouncycastle:bcpkix-jdk15on:${BOUNCYCASTLE_VERSION}"
+    compile "org.bouncycastle:bcprov-jdk15:${BOUNCYCASTLE_VERSION}"
+//    compile "org.bouncycastle:bcpkix-jdk15on:1.50"
+    compile "org.bouncycastle:bcpg-jdk15:${BOUNCYCASTLE_VERSION}"
 }
