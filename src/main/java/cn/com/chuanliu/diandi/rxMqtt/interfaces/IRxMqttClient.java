@@ -23,7 +23,7 @@ public interface IRxMqttClient {
 
     public Observable<RxMqttMessage> subscribing(Pattern pattern);
 
-    public Observable<IMqttToken> publish(String topic, String msg);
+    public Observable<IMqttToken> publish(String topic, byte[] msg);
 
     public Observable<RxMqttClientStatus> statusReport();
 }
