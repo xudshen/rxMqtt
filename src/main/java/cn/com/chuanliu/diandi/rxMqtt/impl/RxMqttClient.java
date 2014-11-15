@@ -24,7 +24,7 @@ public abstract class RxMqttClient implements IRxMqttClient {
 
     protected RxMqttClient() {
         this.conOpt = new MqttConnectOptions();
-        this.configOtherOptions(true, 60, 60);
+        this.configOtherOptions(true, 60, 300);
         //init status
         status = new RxMqttClientStatus();
         status.setLogTime(new Timestamp(System.currentTimeMillis()));

@@ -130,7 +130,7 @@ public class RxMqttAsyncClient extends RxMqttClient {
     @Override
     public Observable<IMqttToken> publish(final String topic, final byte[] msg) {
         final MqttMessage message = new MqttMessage();
-        message.setQos(2);
+        message.setQos(1);
         message.setPayload(msg);
 
         return Observable.create(new Observable.OnSubscribe<IMqttToken>() {
