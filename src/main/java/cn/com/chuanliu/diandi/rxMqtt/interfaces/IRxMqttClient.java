@@ -17,6 +17,8 @@ public interface IRxMqttClient {
 
     public Observable<IMqttToken> disconnect();
 
+    public void disconnectForcibly();
+
     public Observable<IMqttToken> subscribeTopic(String topic, int qos);
 
     public Observable<RxMqttMessage> subscribing(String regularExpression);
@@ -26,4 +28,6 @@ public interface IRxMqttClient {
     public Observable<IMqttToken> publish(String topic, byte[] msg);
 
     public Observable<RxMqttClientStatus> statusReport();
+
+    public Observable<IMqttToken> checkPing(Object userContext);
 }

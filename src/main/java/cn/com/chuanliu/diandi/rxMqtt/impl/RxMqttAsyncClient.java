@@ -206,7 +206,7 @@ public class RxMqttAsyncClient extends RxMqttClient {
 
                 @Override
                 public void messageArrived(String topic, MqttMessage message) {
-                    if(message.getPayload().length != 0) {
+                    if (message.getPayload().length != 0) {
                         for (String key : patternHashtable.keySet()) {
                             if (patternHashtable.get(key).matcher(topic).matches()) {
                                 subjectHashtable.get(key).onNext(new RxMqttMessage(topic, message));
@@ -229,5 +229,33 @@ public class RxMqttAsyncClient extends RxMqttClient {
             subjectHashtable.put(pattern.pattern(), subject);
             return subjectHashtable.get(pattern.pattern());
         }
+    }
+
+    @Override
+    public void disconnectForcibly() {
+        try {
+            client.disconnectForcibly();
+        } catch (MqttException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public Observable<IMqttToken> checkPing(final Object userContext) {
+        return Observable.create(new Observable.OnSubscribe<IMqttToken>() {
+            @Override
+            public void call(final Subscriber<? super IMqttToken> subscriber) {
+                if (!subscriber.isUnsubscribed()) {
+                    try {
+                        IMqttToken mqttToken = client.checkPing(userContext, null);
+                        subscriber.onNext(mqttToken);
+                        subscriber.onCompleted();
+                    } catch (MqttException e) {
+                        subscriber.onError(new RxMqttTokenException(e, null));
+                    }
+                }
+            }
+        });
+
     }
 }
